@@ -6,7 +6,13 @@ app = Flask(__name__)
 # Flag stored in environment
 os.environ['FLAG'] = 'UbigCTF{3sTe1err_Es8u4H_T3mpe_!nd0m13}'
 
-BASE_TEMPLATE = '''
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    name = request.form.get('name', '') if request.method == 'POST' else ''
+    
+    # VULNERABILITY: User input is directly concatenated into template string
+    # This allows SSTI exploitation
+    template = '''
 <!DOCTYPE html>
 <html>
 <head>
@@ -56,37 +62,22 @@ BASE_TEMPLATE = '''
         <h1>🎨 Template Renderer</h1>
         <p>Masukkan nama Anda untuk render template!</p>
         <form method="POST">
-            <input type="text" name="name" placeholder="Nama Anda" value="%s">
+            <input type="text" name="name" placeholder="Nama Anda">
             <button type="submit">Render!</button>
         </form>
-        %s
+        ''' + (f'''
+        <div class="result">
+            <h3>Hasil:</h3>
+            <p>Halo, {name}! Selamat datang di Template Renderer.</p>
+        </div>
+        ''' if name else '') + '''
     </div>
 </body>
 </html>
-'''
-
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    name = ''
-    result_html = ''
+    '''
     
-    if request.method == 'POST':
-        name = request.form.get('name', '')
-        
-        if name:
-            # VULNERABILITY: User input is directly embedded in template string
-            # This creates SSTI because the template is rendered with user input
-            result_template = '''
-            <div class="result">
-                <h3>Hasil:</h3>
-                <p>Halo, ''' + name + '''! Selamat datang di Template Renderer.</p>
-            </div>
-            '''
-            result_html = render_template_string(result_template)
-    
-    # Safe rendering of base template
-    final_html = BASE_TEMPLATE % (name, result_html)
-    return final_html
+    # The vulnerability is here: rendering template with user input embedded
+    return render_template_string(template)
 
 if __name__ == '__main__':
     app.run(debug=False)
