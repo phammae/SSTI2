@@ -6,7 +6,7 @@ app = Flask(__name__)
 # Flag stored in environment
 os.environ['FLAG'] = 'UbigCTF{3sTe1err_Es8u4H_T3mpe_!nd0m13}'
 
-TEMPLATE = '''
+BASE_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
 <head>
@@ -56,15 +56,10 @@ TEMPLATE = '''
         <h1>🎨 Template Renderer</h1>
         <p>Masukkan nama Anda untuk render template!</p>
         <form method="POST">
-            <input type="text" name="name" placeholder="Nama Anda" value="{{ name }}">
+            <input type="text" name="name" placeholder="Nama Anda" value="%s">
             <button type="submit">Render!</button>
         </form>
-        {% if name %}
-        <div class="result">
-            <h3>Hasil:</h3>
-            <p>Halo, {{ name }}! Selamat datang di Template Renderer.</p>
-        </div>
-        {% endif %}
+        %s
     </div>
 </body>
 </html>
@@ -73,9 +68,25 @@ TEMPLATE = '''
 @app.route('/', methods=['GET', 'POST'])
 def index():
     name = ''
+    result_html = ''
+    
     if request.method == 'POST':
         name = request.form.get('name', '')
-    return render_template_string(TEMPLATE, name=name)
+        
+        if name:
+            # VULNERABILITY: User input is directly embedded in template string
+            # This creates SSTI because the template is rendered with user input
+            result_template = '''
+            <div class="result">
+                <h3>Hasil:</h3>
+                <p>Halo, ''' + name + '''! Selamat datang di Template Renderer.</p>
+            </div>
+            '''
+            result_html = render_template_string(result_template)
+    
+    # Safe rendering of base template
+    final_html = BASE_TEMPLATE % (name, result_html)
+    return final_html
 
 if __name__ == '__main__':
     app.run(debug=False)
