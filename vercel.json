@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "src": "app.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "app.py"
+    }
+  ],
+  "env": {
+    "FLAG": "UbigCTF{3sTe1err_Es8u4H_T3mpe_!nd0m13}"
+  }
+}
